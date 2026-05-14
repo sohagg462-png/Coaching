@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Coaching Center</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+
+<!-- Firebase v9 compat (works without module type) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#2D6A0F;--green-bg:#EAF3DE;--green-mid:#639922;
+  --bg:#F7F7F5;--card:#fff;--border:#E5E5E0;--border2:#D0D0C8;
+  --text:#1A1A18;--text2:#6B6B65;--text3:#A8A8A2;
+  --info-bg:#E6F1FB;--info:#185FA5;
+  --danger:#A32D2D;--danger-bg:#FCEBEB;
+  --radius:10px;--radius-lg:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;padding-bottom:30px;min-height:100vh;background:var(--bg)}
+
+#appLoader{position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#appLoader .licon{font-size:44px}
+#appLoader .ltxt{font-size:15px;color:var(--text2);font-weight:500}
+#appLoader .lspin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#syncBadge{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;font-size:12px;padding:7px 14px;border-radius:20px;z-index:500;display:none;align-items:center;gap:6px;font-weight:500;white-space:nowrap}
+#syncBadge.show{display:flex}
+.sspin{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+
+.header{padding:14px 15px 12px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.hback{display:none;background:none;border:none;cursor:pointer;color:var(--text);padding:5px;border-radius:8px;align-items:center;font-size:22px;line-height:1}
+.hback.show{display:flex}
+.htitle{flex:1;min-width:0}
+.hm{font-size:18px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hs{font-size:12px;color:var(--text2);margin-top:1px}
+.hbtn{background:none;border:1px solid var(--border2);border-radius:8px;padding:7px 11px;cursor:pointer;color:var(--text);font-size:13px;display:flex;align-items:center;gap:5px;font-weight:500;white-space:nowrap}
+.hbtn:active{background:var(--bg)}
+.hbtn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.hbtn-green:active{background:#235508}
+.hacts{display:flex;gap:6px}
+
+.screen{display:none}.screen.active{display:block}
+
+.sbar{padding:12px 15px;position:relative}
+.sbar input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);color:var(--text);font-size:15px;outline:none}
+.sbar input:focus{border-color:var(--green-mid)}
+.sicon{position:absolute;left:26px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:17px;pointer-events:none}
+
+.list{padding:0 15px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.card:active{background:var(--bg)}
+.badge{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.av{width:42px;height:42px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:var(--info);flex-shrink:0}
+.cinfo{flex:1;min-width:0}
+.cn{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs{font-size:12px;color:var(--text2);margin-top:2px}
+.iact{display:flex;gap:4px;flex-shrink:0}
+.ib{background:none;border:none;cursor:pointer;color:var(--text2);padding:6px;border-radius:8px;font-size:18px;line-height:1}
+.ib:active{background:var(--bg)}
+.ib.d:active{color:var(--danger);background:var(--danger-bg)}
+
+.prof-head{padding:15px;display:flex;align-items:center;gap:13px;background:var(--card);border-bottom:1px solid var(--border)}
+.prof-av{width:54px;height:54px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:var(--green);flex-shrink:0}
+
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 15px}
+.tab{flex:1;padding:11px 8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text2);border-bottom:2.5px solid transparent;margin-bottom:-1px;font-weight:500}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+
+.citem{margin:0 15px 8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;display:flex;align-items:center;gap:10px}
+.clbl{font-size:11px;color:var(--text2);font-weight:500}
+.cnum{font-size:15px;font-family:monospace;color:var(--text);margin-top:2px;font-weight:600}
+.callbtn{display:flex;align-items:center;gap:6px;background:var(--green);border:none;border-radius:var(--radius);padding:9px 13px;cursor:pointer;color:#fff;font-size:13px;text-decoration:none;flex-shrink:0;font-weight:600}
+
+.dw{padding:0 15px}
+.dc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:4px}
+.dr{display:flex;padding:11px 14px;border-bottom:1px solid var(--border)}
+.dr:last-child{border-bottom:none}
+.dl{font-size:13px;color:var(--text2);width:130px;flex-shrink:0;padding-right:8px}
+.dv{font-size:13px;color:var(--text);flex:1;font-weight:500}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.ov.show{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;padding:20px 18px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.mt{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--text)}
+.fl{font-size:12px;color:var(--text2);margin-bottom:4px;display:block;font-weight:500}
+.fi{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:15px;margin-bottom:10px;outline:none}
+.fi:focus{border-color:var(--green-mid);background:var(--card)}
+.sec-div{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;padding:6px 0 8px;border-top:1px solid var(--border);margin:4px 0 2px}
+.ma{display:flex;gap:8px;margin-top:14px}
+.mb{flex:1;padding:12px;border-radius:var(--radius);font-size:15px;cursor:pointer;font-weight:600}
+.mbp{background:var(--green);color:#fff;border:none}
+.mbp:active{background:#235508}
+.mbs{background:none;color:var(--text);border:1px solid var(--border2)}
+
+.set-section{padding:13px 15px 6px;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase}
+.set-card{margin:0 15px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.set-row{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.set-row:last-child{border-bottom:none}
+.set-row:active{background:var(--bg)}
+.set-row-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.set-row-info{flex:1}
+.set-row-title{font-size:14px;font-weight:600;color:var(--text)}
+.set-row-sub{font-size:12px;color:var(--text2);margin-top:1px}
+
+.bcard{margin:0 15px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.bcard p{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:12px}
+.bbtn{width:100%;padding:11px;border-radius:var(--radius);font-size:14px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+.bbtn:last-child{margin-bottom:0}
+.bbtn-g{background:var(--green);color:#fff;border:none}
+.bbtn-w{background:none;color:var(--text);border:1px solid var(--border2)}
+
+.cf-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.cf-row:last-child{border-bottom:none}
+.cf-name{flex:1;font-size:14px;color:var(--text);font-weight:500}
+
+.empty{text-align:center;padding:50px 20px;color:var(--text2);font-size:14px}
+.empty i{font-size:36px;display:block;margin-bottom:10px;color:var(--text3)}
+.empty b{display:block;font-size:16px;color:var(--text);margin-bottom:6px;font-weight:600}
+
+.print-row{display:flex;gap:8px;padding:10px 15px 0}
+.prbtn{flex:1;padding:11px;border-radius:var(--radius);font-size:13px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--border2);color:var(--text)}
+
+.ca{background:#E6F1FB;color:#0C447C}
+.cb{background:#EAF3DE;color:#27500A}
+.cc{background:#FAEEDA;color:#633806}
+.cd{background:#EEEDFE;color:#3C3489}
+.ce{background:#FAECE7;color:#712B13}
+.cf{background:#E1F5EE;color:#085041}
+</style>
+</head>
+<body>
+
+<div id="appLoader">
+  <div class="licon">🏫</div>
+  <div class="ltxt" id="loaderTxt">সংযুক্ত হচ্ছে...</div>
+  <div class="lspin"></div>
+</div>
+
+<div id="syncBadge"><div class="sspin"></div><span id="syncTxt">Saving...</span></div>
+
+<div class="app" id="mainApp" style="display:none">
+  <div class="header">
+    <button class="hback" id="backBtn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div class="htitle">
+      <div class="hm" id="hT">🏫 Coaching Center</div>
+      <div class="hs" id="hS"></div>
+    </div>
+    <div class="hacts" id="hA"></div>
+  </div>
+
+  <div class="screen active" id="sCls">
+    <div class="sbar"><i class="ti ti-search sicon"></i><input type="text" placeholder="Class search koro..." id="clsQ" oninput="renderCls()"></div>
+    <div class="list" id="clsList"></div>
+  </div>
+
+  <div class="screen" id="sStu">
+    <div class="sbar"><i class="ti ti-search sicon"></i><input type="text" placeholder="Student search koro..." id="stuQ" oninput="renderStu()"></div>
+    <div class="list" id="stuList"></div>
+  </div>
+
+  <div class="screen" id="sProf">
+    <div class="prof-head">
+      <div class="prof-av" id="pAv"></div>
+      <div>
+        <div style="font-size:17px;font-weight:700;color:var(--text)" id="pN"></div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px" id="pC"></div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="stab('c')">📞 Contacts</button>
+      <button class="tab" onclick="stab('d')">📋 Details</button>
+    </div>
+    <div id="tC"></div>
+    <div id="tD" style="display:none"></div>
+    <div class="print-row">
+      <button class="prbtn" onclick="printStu()"><i class="ti ti-printer"></i> Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="screen" id="sSet">
+    <div class="set-section">Data Backup</div>
+    <div class="bcard">
+      <p>Shob student data ekta click e download hobe CSV format e।</p>
+      <button class="bbtn bbtn-g" onclick="exportCSV()"><i class="ti ti-download"></i> CSV Backup Download koro</button>
+      <button class="bbtn bbtn-w" onclick="window.open('https://sheets.google.com','_blank')"><i class="ti ti-brand-google"></i> Google Sheets e Open koro</button>
+    </div>
+    <div class="set-section">Custom Fields</div>
+    <div class="set-card" id="cfCard">
+      <div id="cfList"></div>
+      <div class="set-row" onclick="openAddField()">
+        <div class="set-row-icon" style="background:var(--green-bg);color:var(--green)"><i class="ti ti-plus"></i></div>
+        <div class="set-row-info">
+          <div class="set-row-title">Notun field add koro</div>
+          <div class="set-row-sub">School name, Batch, ja khushi</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text3)"></i>
+      </div>
+    </div>
+    <div class="set-section">App Info</div>
+    <div class="set-card">
+      <div class="set-row" style="cursor:default">
+        <div class="set-row-icon" style="background:#EAF3DE;color:#27500A"><i class="ti ti-cloud"></i></div>
+        <div class="set-row-info">
+          <div class="set-row-title">Firebase Cloud Sync</div>
+          <div class="set-row-sub">PC ও Android — ekoi data</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="mt" id="mT"></div>
+    <div id="mB"></div>
+    <div class="ma">
+      <button class="mb mbs" onclick="closeM()">Cancel</button>
+      <button class="mb mbp" id="saveBtn" onclick="saveM()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE INIT ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBXWeP5RV8q9ywoPXw9HUdCi_A2hNSbD5Q",
+  authDomain: "student-database-8c1ab.firebaseapp.com",
+  databaseURL: "https://student-database-8c1ab-default-rtdb.firebaseio.com",
+  projectId: "student-database-8c1ab",
+  storageBucket: "student-database-8c1ab.firebasestorage.app",
+  messagingSenderId: "483001319504",
+  appId: "1:483001319504:web:068f374bd529d3e7a35155"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── STATE ──
+const COLS = ['ca','cb','cc','cd','ce','cf'];
+let data = {classes:{}, students:{}, customFields:{}};
+let nav = ['cls'], curCls = null, curStu = null, mMode = null, mEid = null;
+let syncTimer = null;
+let appReady = false;
+
+const DEFAULT_FIELDS = [
+  'Parent / Guardian naam','Address','Religion','National ID','Bus number','Notes'
+];
+
+// ── SYNC UI ──
+function showSync(t){
+  document.getElementById('syncTxt').textContent = t;
+  document.getElementById('syncBadge').classList.add('show');
+  clearTimeout(syncTimer);
+}
+function hideSync(){
+  syncTimer = setTimeout(()=>document.getElementById('syncBadge').classList.remove('show'),1500);
+}
+
+// ── HELPERS ──
+function ini(n){
+  const p=(n||'X').trim().split(' ');
+  return(p.length>=2?p[0][0]+p[1][0]:n.slice(0,2)).toUpperCase();
+}
+function scr(id){
+  ['sCls','sStu','sProf','sSet'].forEach(s=>document.getElementById(s).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function clsArr(){ return Object.entries(data.classes||{}).map(([id,v])=>({id,...v})); }
+function stuArr(){ return Object.entries(data.students||{}).map(([id,v])=>({id,...v})); }
+function cfArr(){  return Object.entries(data.customFields||{}).map(([id,v])=>({id,...v})); }
+
+// ── LISTEN ──
+function startListening(){
+  db.ref('/').on('value', snap=>{
+    const val = snap.val() || {};
+    data.classes      = val.classes      || {};
+    data.students     = val.students     || {};
+    data.customFields = val.customFields || {};
+
+    // Seed default fields on first load
+    if(!appReady && Object.keys(data.customFields).length === 0){
+      DEFAULT_FIELDS.forEach(label => db.ref('customFields').push({label}));
+    }
+
+    appReady = true;
+    document.getElementById('appLoader').style.display = 'none';
+    document.getElementById('mainApp').style.display   = 'block';
+
+    // Refresh current screen
+    const cur = nav[nav.length-1];
+    if(cur==='cls') renderCls();
+    else if(cur==='stu') renderStu();
+    else if(cur==='prof' && curStu){
+      const u = data.students[curStu.id];
+      if(u){ curStu={id:curStu.id,...u}; renderContacts(curStu); renderDetails(curStu); }
+    }
+    else if(cur==='set') renderCF();
+
+  }, err=>{
+    document.getElementById('loaderTxt').textContent = 'Connection failed! Internet check koro.';
+  });
+}
+
+// ── NAV ──
+function goBack(){
+  nav.pop();
+  const p = nav[nav.length-1]||'cls';
+  if(p==='cls') showCls();
+  else if(p==='stu') showStu(curCls,false);
+  else showCls();
+}
+function showCls(){
+  nav=['cls']; scr('sCls');
+  document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('hT').textContent='🏫 Coaching Center';
+  document.getElementById('hS').textContent='';
+  document.getElementById('hA').innerHTML=`<button class="hbtn" onclick="showSet()"><i class="ti ti-settings"></i></button><button class="hbtn hbtn-green" onclick="openAddCls()"><i class="ti ti-plus"></i> Add</button>`;
+  renderCls();
+}
+function showStu(cls, push=true){
+  curCls=cls; if(push) nav.push('stu'); scr('sStu');
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('hT').textContent=cls.name;
+  const cnt=stuArr().filter(s=>s.classId===cls.id).length;
+  document.getElementById('hS').textContent=cnt+' student';
+  document.getElementById('hA').innerHTML=`<button class="hbtn" onclick="printCls()"><i class="ti ti-printer"></i></button><button class="hbtn hbtn-green" onclick="openAddStu()"><i class="ti ti-plus"></i> Student</button>`;
+  renderStu();
+}
+function showProf(s, push=true){
+  curStu=s; if(push) nav.push('prof'); scr('sProf');
+  const cls=data.classes[s.classId];
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('hT').textContent=s.name;
+  document.getElementById('hS').textContent=cls?cls.name:'';
+  document.getElementById('hA').innerHTML=`<button class="hbtn" onclick="openEditStu('${s.id}')"><i class="ti ti-edit"></i> Edit</button>`;
+  document.getElementById('pAv').textContent=ini(s.name);
+  document.getElementById('pN').textContent=s.name;
+  document.getElementById('pC').textContent=cls?cls.name:'';
+  stab('c'); renderContacts(s); renderDetails(s);
+}
+function showSet(){
+  nav.push('set'); scr('sSet');
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('hT').textContent='Settings & Backup';
+  document.getElementById('hS').textContent='';
+  document.getElementById('hA').innerHTML='';
+  renderCF();
+}
+function stab(t){
+  document.querySelectorAll('.tab').forEach((x,i)=>x.classList.toggle('active',i===(t==='c'?0:1)));
+  document.getElementById('tC').style.display=t==='c'?'block':'none';
+  document.getElementById('tD').style.display=t==='d'?'block':'none';
+}
+
+// ── RENDER ──
+function renderCls(){
+  const q=(document.getElementById('clsQ')?.value||'').toLowerCase();
+  const el=document.getElementById('clsList');
+  const f=clsArr().filter(c=>c.name.toLowerCase().includes(q));
+  if(!f.length){el.innerHTML='<div class="empty"><i class="ti ti-school"></i><b>Kono class nai</b>Add button diye prothom class banao</div>';return;}
+  el.innerHTML=f.map((c,i)=>{
+    const cnt=stuArr().filter(s=>s.classId===c.id).length;
+    return`<div class="card" onclick="showStu({id:'${c.id}',name:'${c.name.replace(/'/g,"\\'")}'},true)">
+      <div class="badge ${COLS[i%COLS.length]}">${c.name.replace(/class\s*/i,'').slice(0,3)}</div>
+      <div class="cinfo"><div class="cn">${c.name}</div><div class="cs">${cnt} student</div></div>
+      <div class="iact">
+        <button class="ib" onclick="event.stopPropagation();openEditCls('${c.id}')"><i class="ti ti-edit"></i></button>
+        <button class="ib d" onclick="event.stopPropagation();delCls('${c.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderStu(){
+  const q=(document.getElementById('stuQ')?.value||'').toLowerCase();
+  const el=document.getElementById('stuList');
+  if(!curCls) return;
+  const f=stuArr().filter(s=>s.classId===curCls.id&&s.name.toLowerCase().includes(q));
+  if(!f.length){el.innerHTML='<div class="empty"><i class="ti ti-users"></i><b>Kono student nai</b>Student button diye add koro</div>';return;}
+  el.innerHTML=f.map(s=>{
+    const nums=[s.sn,s.fn,s.mn,s.on].filter(Boolean).length;
+    return`<div class="card" onclick="showProf({id:'${s.id}',...data.students['${s.id}']},true)">
+      <div class="av">${ini(s.name)}</div>
+      <div class="cinfo"><div class="cn">${s.name}</div><div class="cs">${nums} number save ache</div></div>
+      <div class="iact">
+        <button class="ib" onclick="event.stopPropagation();openEditStu('${s.id}')"><i class="ti ti-edit"></i></button>
+        <button class="ib d" onclick="event.stopPropagation();delStu('${s.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderContacts(s){
+  const el=document.getElementById('tC');
+  const nums=[{l:'Student er number',n:s.sn},{l:'Father er number',n:s.fn},{l:'Mother er number',n:s.mn},{l:'Other / Guardian',n:s.on}].filter(x=>x.n);
+  if(!nums.length){el.innerHTML='<div class="empty"><i class="ti ti-phone-off"></i><b>Number save nai</b>Edit button diye add koro</div>';return;}
+  el.innerHTML='<div style="height:6px"></div>'+nums.map(x=>`<div class="citem"><div style="flex:1"><div class="clbl">${x.l}</div><div class="cnum">${x.n}</div></div><a href="tel:${x.n}" class="callbtn"><i class="ti ti-phone"></i> Call</a></div>`).join('');
+}
+function renderDetails(s){
+  const el=document.getElementById('tD');
+  const cfs=cfArr();
+  if(!cfs.length){el.innerHTML='<div class="empty"><i class="ti ti-notes"></i><b>Kono detail nai</b></div>';return;}
+  el.innerHTML='<div class="dw" style="margin-top:8px"><div class="dc">'+cfs.map(f=>`<div class="dr"><span class="dl">${f.label}</span><span class="dv">${(s.custom||{})[f.id]||'—'}</span></div>`).join('')+'</div></div>';
+}
+function renderCF(){
+  const el=document.getElementById('cfList');
+  const cfs=cfArr();
+  if(!cfs.length){el.innerHTML='';return;}
+  el.innerHTML=cfs.map(f=>`<div class="cf-row"><span class="cf-name">${f.label}</span><button class="ib d" onclick="delField('${f.id}')"><i class="ti ti-trash"></i></button></div>`).join('');
+}
+
+// ── CLASS ACTIONS ──
+function openAddCls(){
+  mMode='aC'; mEid=null;
+  document.getElementById('mT').textContent='Class add koro';
+  document.getElementById('mB').innerHTML=`<label class="fl">Class er naam *</label><input class="fi" id="f_cn" placeholder="jemon: Class 6, Class 9">`;
+  document.getElementById('ov').classList.add('show');
+  setTimeout(()=>document.getElementById('f_cn').focus(),150);
+}
+function openEditCls(id){
+  const c=data.classes[id];
+  mMode='eC'; mEid=id;
+  document.getElementById('mT').textContent='Class edit koro';
+  document.getElementById('mB').innerHTML=`<label class="fl">Class er naam *</label><input class="fi" id="f_cn" value="${c.name}">`;
+  document.getElementById('ov').classList.add('show');
+}
+function delCls(id){
+  if(!confirm('Ei class ar shob student delete hobe. Sure?')) return;
+  stuArr().filter(s=>s.classId===id).forEach(s=>db.ref('students/'+s.id).remove());
+  db.ref('classes/'+id).remove();
+}
+
+// ── STUDENT ACTIONS ──
+function openAddStu(){
+  mMode='aS'; mEid=null;
+  document.getElementById('mT').textContent='Student add koro';
+  document.getElementById('mB').innerHTML=stuForm({});
+  document.getElementById('ov').classList.add('show');
+  setTimeout(()=>document.getElementById('f_nm').focus(),150);
+}
+function openEditStu(id){
+  const s={id,...data.students[id]};
+  mMode='eS'; mEid=id;
+  document.getElementById('mT').textContent='Student edit koro';
+  document.getElementById('mB').innerHTML=stuForm(s);
+  document.getElementById('ov').classList.add('show');
+}
+function delStu(id){
+  if(!confirm('Student delete hobe. Sure?')) return;
+  db.ref('students/'+id).remove();
+  const cur=nav[nav.length-1];
+  if(cur==='prof'){ nav.pop(); showStu(curCls,false); }
+}
+function stuForm(s){
+  const cfHTML=cfArr().map(f=>`<label class="fl">${f.label}</label><input class="fi" id="cf_${f.id}" value="${((s.custom||{})[f.id]||'').replace(/"/g,'&quot;')}">`).join('');
+  return`<label class="fl">Puro naam *</label><input class="fi" id="f_nm" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Student er naam">
+  <div class="sec-div">📞 Phone Numbers</div>
+  <label class="fl">Student er number</label><input class="fi" id="f_sn" type="tel" value="${s.sn||''}" placeholder="017XXXXXXXX">
+  <label class="fl">Father er number</label><input class="fi" id="f_fn" type="tel" value="${s.fn||''}" placeholder="017XXXXXXXX">
+  <label class="fl">Mother er number</label><input class="fi" id="f_mn" type="tel" value="${s.mn||''}" placeholder="017XXXXXXXX">
+  <label class="fl">Other / Guardian number</label><input class="fi" id="f_on" type="tel" value="${s.on||''}" placeholder="017XXXXXXXX">
+  ${cfHTML?`<div class="sec-div">📋 Details</div>${cfHTML}`:''}`;
+}
+
+// ── FIELD ACTIONS ──
+function openAddField(){
+  mMode='aF';
+  document.getElementById('mT').textContent='Custom field add koro';
+  document.getElementById('mB').innerHTML=`<label class="fl">Field er naam *</label><input class="fi" id="f_fl" placeholder="jemon: School name, Batch">`;
+  document.getElementById('ov').classList.add('show');
+  setTimeout(()=>document.getElementById('f_fl').focus(),150);
+}
+function delField(id){
+  if(!confirm('Field delete hobe?')) return;
+  db.ref('customFields/'+id).remove();
+}
+
+// ── SAVE ──
+function saveM(){
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true; btn.textContent='Saving...';
+
+  try{
+    if(mMode==='aC'||mMode==='eC'){
+      const n=document.getElementById('f_cn').value.trim();
+      if(!n){alert('Class er naam dao!');btn.disabled=false;btn.textContent='Save';return;}
+      showSync('Saving...');
+      if(mMode==='aC') db.ref('classes').push({name:n}).then(hideSync);
+      else db.ref('classes/'+mEid).update({name:n}).then(hideSync);
+      closeM();
+    }
+    else if(mMode==='aS'||mMode==='eS'){
+      const n=document.getElementById('f_nm').value.trim();
+      if(!n){alert('Student er naam dao!');btn.disabled=false;btn.textContent='Save';return;}
+      const custom={};
+      cfArr().forEach(f=>{const el=document.getElementById('cf_'+f.id);if(el)custom[f.id]=el.value.trim();});
+      const d={name:n,classId:curCls.id,sn:document.getElementById('f_sn').value.trim(),fn:document.getElementById('f_fn').value.trim(),mn:document.getElementById('f_mn').value.trim(),on:document.getElementById('f_on').value.trim(),custom};
+      showSync('Saving...');
+      if(mMode==='aS') db.ref('students').push(d).then(hideSync);
+      else db.ref('students/'+mEid).update(d).then(hideSync);
+      closeM();
+    }
+    else if(mMode==='aF'){
+      const l=document.getElementById('f_fl').value.trim();
+      if(!l){alert('Field er naam dao!');btn.disabled=false;btn.textContent='Save';return;}
+      showSync('Saving...');
+      db.ref('customFields').push({label:l}).then(hideSync);
+      closeM();
+    }
+  }finally{
+    btn.disabled=false; btn.textContent='Save';
+  }
+}
+function closeM(){ document.getElementById('ov').classList.remove('show'); }
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.classList.contains('ov'))closeM();});
+
+// ── EXPORT ──
+function exportCSV(){
+  const ss=stuArr();
+  if(!ss.length){alert('Kono student nai!');return;}
+  const cfs=cfArr();
+  let csv='Class,Student Name,Student Number,Father Number,Mother Number,Other/Guardian';
+  cfs.forEach(f=>{csv+=','+f.label;}); csv+='\n';
+  clsArr().forEach(c=>{
+    ss.filter(s=>s.classId===c.id).forEach(s=>{
+      let row=[c.name,s.name,s.sn||'',s.fn||'',s.mn||'',s.on||''];
+      cfs.forEach(f=>{row.push((s.custom||{})[f.id]||'');});
+      csv+=row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+'\n';
+    });
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='CoachingCenter_'+new Date().toLocaleDateString('en-GB').replace(/\//g,'-')+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── PRINT ──
+function printStu(){
+  const s=curStu; if(!s)return;
+  const cls=data.classes[s.classId];
+  const cfs=cfArr();
+  const cRows=cfs.map(f=>`<tr><td style="color:#666;width:140px;padding:8px 10px;border-bottom:1px solid #eee">${f.label}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${(s.custom||{})[f.id]||'—'}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${s.name}</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;color:#1a1a18}table{width:100%;border-collapse:collapse;font-size:14px}.btn{padding:9px 18px;cursor:pointer;border:1px solid #ccc;border-radius:8px;background:#fff;font-size:14px;margin-bottom:20px}@media print{.btn{display:none}}</style></head><body>
+  <h2>${s.name}</h2><p style="color:#666">${cls?cls.name:''}</p>
+  <button class="btn" onclick="window.print()">🖨️ Print / PDF</button>
+  <table><tr><td style="color:#666;width:140px;padding:8px 10px;border-bottom:1px solid #eee">Student</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${s.sn||'—'}</td></tr>
+  <tr><td style="color:#666;padding:8px 10px;border-bottom:1px solid #eee">Father</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${s.fn||'—'}</td></tr>
+  <tr><td style="color:#666;padding:8px 10px;border-bottom:1px solid #eee">Mother</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${s.mn||'—'}</td></tr>
+  <tr><td style="color:#666;padding:8px 10px;border-bottom:1px solid #eee">Other</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${s.on||'—'}</td></tr></table>
+  ${cRows?`<h3 style="margin-top:20px">Details</h3><table>${cRows}</table>`:''}
+  </body></html>`);w.document.close();
+}
+function printCls(){
+  if(!curCls)return;
+  const ss=stuArr().filter(s=>s.classId===curCls.id);
+  if(!ss.length){alert('Kono student nai!');return;}
+  const w=window.open('','_blank');
+  const rows=ss.map((s,i)=>`<tr><td style="padding:8px 10px;border-bottom:1px solid #eee">${i+1}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500">${s.name}</td><td style="padding:8px 10px;border-bottom:1px solid #eee">${s.sn||'—'}</td><td style="padding:8px 10px;border-bottom:1px solid #eee">${s.fn||'—'}</td><td style="padding:8px 10px;border-bottom:1px solid #eee">${s.mn||'—'}</td></tr>`).join('');
+  w.document.write(`<!DOCTYPE html><html><head><title>${curCls.name}</title><style>body{font-family:sans-serif;margin:40px;color:#1a1a18}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#EAF3DE;padding:9px 10px;text-align:left}.btn{padding:9px 18px;cursor:pointer;border:1px solid #ccc;border-radius:8px;background:#fff;font-size:14px;margin-bottom:18px}@media print{.btn{display:none}}</style></head><body>
+  <h2>${curCls.name} — Student List</h2>
+  <button class="btn" onclick="window.print()">🖨️ Print</button>
+  <table><thead><tr><th>#</th><th>Name</th><th>Student No</th><th>Father No</th><th>Mother No</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`);w.document.close();
+}
+
+// ── START ──
+showCls();
+startListening();
+</script>
+</body>
+</html>
